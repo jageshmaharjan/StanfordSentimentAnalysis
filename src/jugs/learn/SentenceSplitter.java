@@ -10,20 +10,19 @@ import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.StringUtils;
 import org.json.simple.parser.ParseException;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.util.*;
 
 /**
  * Created by jugs on 1/2/17.
  */
+//-----------THIS CLASS READS THE DATAFILE AND GENERATES THE ”DATASENTENCES.TXT“ FILE WITH EACH SENTENCE EACH LINE ALONG WITH SENTENCE——INDEX----------
+
 public class SentenceSplitter
 {
-    List<String> NON_TOKENS = Arrays.asList("-LRB-", "," , ".");
-
     private StanfordCoreNLP pipeline;
-    private Set<String> phrases = new HashSet<>();
+    private int sentenceIndex = 1;
+
     public SentenceSplitter()
     {
         Properties prop = new Properties();
@@ -33,31 +32,20 @@ public class SentenceSplitter
 
     public static void main(String[] args) throws Exception
     {
-
-
         File file = new File("/home/jugs/Desktop/Dataset/Reviewjson.txt");
         BufferedReader br = new BufferedReader(new FileReader(file));
         String line ;
-
 
         SentenceSplitter sentenceSplitter = new SentenceSplitter();
         while ((line = br.readLine()) != null)
         {
             String review = line.split("\\: \"")[1].substring(0,line.split("\\: \"")[1].length()-10);
             sentenceSplitter.getReviews(review.replaceAll("\\\\r\\\\n"," ").replaceAll("\\.{2,}",". "));
-
         }
 
-        sentenceSplitter.writeToFile();
     }
 
-    private void writeToFile()
-    {
-
-
-    }
-
-    private void getReviews(String data) throws ParseException
+    private void getReviews(String data) throws Exception
     {
         //LexicalizedParser lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz",
         //        "-maxLength", "80", "-retainTmpSubcategories");
@@ -68,22 +56,21 @@ public class SentenceSplitter
 
         Annotation document = new Annotation(data);
         pipeline.annotate(document);
-
+        Set<String> phrases = new HashSet<>();
         List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
         for (CoreMap sentence : sentences)
         {
-            List<String> tokenLst = new ArrayList<>();
-            for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class))
-            {
-                String tok = processString(token.toString()); //token.toString().substring(0,token.toString().length()-2);
-                if (!NON_TOKENS.stream().anyMatch(str -> str.equals(tok)))
-                    tokenLst.add(tok);
-            }
-
-            Collection ngramsTokens = StringUtils.getNgrams(tokenLst, 1, tokenLst.size());
-            phrases.addAll(ngramsTokens);
-            System.out.println();
+            saveDataSentence(sentence);
         }
+    }
+
+    private void saveDataSentence(CoreMap sentence) throws IOException
+    {
+        FileWriter fw = new FileWriter("DataSentence.txt", true);
+        fw.write(sentenceIndex + "\t" + sentence.toString());
+        fw.write("\n");
+        sentenceIndex++;
+        fw.close();
     }
 
     private String processString(String str)
